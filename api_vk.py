@@ -7,7 +7,6 @@ import json
 import time
 from progress.bar import Bar #необходимо установить модуль progress.bar 'pip install progress'
 
-
 VK_ACCESS_TOKEN = "958eb5d439726565e9333aa30e50e0f937ee432e927f0dbd541c541887d919a7c56f95c04217915c32008"
 
 id = input("Введите id пользователя: ")
@@ -17,7 +16,7 @@ YA_OAUTH_TOKEN = input("Введите ключ Яндекс Диска: ")
 
 def backup_photos(id, count=5):
     #Запускаем Progress bar
-    bar = Bar('Processing', max=(count + 7))
+    bar = Bar('Processing', max=7)
     
     #Получаем информацию о фотографиях пользователя VK
     params = {
@@ -85,11 +84,15 @@ def backup_photos(id, count=5):
     # Открываем каждый файл для сохранения на Яндекс Диске
     for file in files:
         with open(file, 'rb') as f:
-            response_get = requests.get("https://cloud-api.yandex.net/v1/disk/resources/upload",headers=headers, params={"path": file, "overwrite": "true"})
+            response_get = requests.get("https://cloud-api.yandex.net/v1/disk/resources/upload", headers=headers, params={"path": file, "overwrite": "true"})
             href = response_get.json()['href']
-            requests.put(href)
-            bar.next()
-            
+            operation_id = response_get.json()['operation_id']
+            requests.put(href, files={"file": f}, headers=headers)
+            status = requests.get(f"https://cloud-api.yandex.net/v1/disk/operations/{operation_id}", headers=headers)
+            if status.status_code == 200:
+                print("Фото загружено.")
+            else:
+                print(f"Ошибка {status.status_code} при загрузке.")
     bar.next()
     
     #Удаляем папку с компа
@@ -104,5 +107,3 @@ def backup_photos(id, count=5):
     bar.finish()
     
 backup_photos(id, count)
-
-
